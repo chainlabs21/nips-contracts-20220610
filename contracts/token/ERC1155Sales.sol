@@ -241,6 +241,10 @@ contract ERC1155Sales is  // Mint 	, Sale 	,
 	}
 	function get_admin_fee() public returns ( uint256){		return _admin_fee ;
 	}
+	address public _feecollector_for_sales  ;
+	function set_feecollector_for_sales ( address __feecollector_for_sales ) public {
+		_feecollector_for_sales = __feecollector_for_sales ;
+	}
 	function mint_and_match_single_simple_legacy (
 		  address _target_erc1155_contract // 0
 		, string memory _itemid //1 //		, uint256 _tokenid // 2 ignored for now
@@ -252,6 +256,7 @@ contract ERC1155Sales is  // Mint 	, Sale 	,
 		, uint256 _amounttopay // 7 //		, uint256 _pr ice // 7
 		, address _paymeansaddress // 8
 		, address _seller // 9
+//		, address _feecollect or_from_front
 //		, address _to // 9
 //		, address _referer // 10
 	) public payable {
