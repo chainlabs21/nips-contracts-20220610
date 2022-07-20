@@ -296,8 +296,8 @@ interface IERC1155Receiver is IERC165 {
 	mapping ( uint256 => string ) _tokenid_metadataurl ; // ipfs | http
 	mapping ( uint256 => string ) _tokenid_rawfileurl ;  // ipfs
 	string public _version ;
-	string public name = "fanC NFT";
-	string public symbol = "FANC";
+	string public name = "NIP Tickets";
+	string public symbol = "NIPT";
   /**     * @dev See {_setURI}.
   */
 /**  	function _beforeTokenTransfer 
