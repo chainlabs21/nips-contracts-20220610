@@ -2,7 +2,7 @@ pragma solidity ^0.5.6;
 
 import "./IKIP17.sol";
 // import "./IERC721Receiver.sol";
-import "./IKIP17Receiver";
+import "../token/IKIP17Receiver";
 import "../../math/SafeMath.sol";
 import "../../utils/Address.sol";
 import "../../drafts/Counters.sol";
