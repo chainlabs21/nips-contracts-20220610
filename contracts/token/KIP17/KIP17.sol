@@ -1,4 +1,5 @@
 pragma solidity ^0.5.0;
+
 import "./IKIP17.sol";
 import "./IERC721Receiver.sol";
 import "./IKIP17Receiver.sol";
@@ -6,104 +7,57 @@ import "../../math/SafeMath.sol";
 import "../../utils/Address.sol";
 import "../../drafts/Counters.sol";
 import "../../introspection/KIP13.sol";
-/** 	_itemhash_tokenid
-	mint (
-			_author // _sell er
-		, _itemid
-		, _amounttomint // _am ount
-		, _author_royalty
-		, _decimals // 0 // _decimals
-		, "0x00"
-	) 
-	_author_royalty
-	_author
-	safeTransferFrom
-*/
-contract Context {    // Empty internal constructor, to prevent people from mistakenly deploying    // an instance of this contract, which should be used via inheritance.
-    constructor () internal { }    // solhint-disable-previous-line no-empty-blocks
-    function _msgSender() internal view returns (address payable) {
-        return msg.sender;
-    }
-    function _msgData() internal view returns (bytes memory) {
-        this; // silence state mutability warning without generating bytecode - see https://github.com/ethereum/solidity/issues/2691
-        return msg.data;
-    }
-}
 
-contract KIP17 is KIP13, IKIP17, Context {
+/**
+ * @title KIP17 Non-Fungible Token Standard basic implementation
+ * @dev see http://kips.klaytn.com/KIPs/kip-17-non_fungible_token
+ */
+contract KIP17 is KIP13, IKIP17 {
     using SafeMath for uint256;
     using Address for address;
     using Counters for Counters.Counter;
+
     // Equals to `bytes4(keccak256("onKIP17Received(address,address,uint256,bytes)"))`
     // which can be also obtained as `IKIP17Receiver(0).onKIP17Received.selector`
-	/******* ADD ON's */
-	mapping ( string => uint256 ) public _itemhash_tokenid ; // content id
-    mapping ( uint256 => string ) public _tokenid_itemhash ;
-	mapping ( uint256=> address ) public _author ; // do struct if more than two
-	mapping ( uint256 => uint) public _author_royalty ; // token id =>
-    mapping ( uint256 => uint256 ) public _decimals ;
-
-	/******* end */
     bytes4 private constant _KIP17_RECEIVED = 0x6745782b;
+
     // Equals to `bytes4(keccak256("onERC721Received(address,address,uint256,bytes)"))`
     // which can be also obtained as `IERC721Receiver(0).onERC721Received.selector`
     bytes4 private constant _ERC721_RECEIVED = 0x150b7a02;
+
     // Mapping from token ID to owner
     mapping (uint256 => address) private _tokenOwner;
+
     // Mapping from token ID to approved address
     mapping (uint256 => address) private _tokenApprovals;
+
     // Mapping from owner to number of owned token
     mapping (address => Counters.Counter) private _ownedTokensCount;
+
     // Mapping from owner to operator approvals
     mapping (address => mapping (address => bool)) private _operatorApprovals;
+
+    /*
+     *     bytes4(keccak256('balanceOf(address)')) == 0x70a08231
+     *     bytes4(keccak256('ownerOf(uint256)')) == 0x6352211e
+     *     bytes4(keccak256('approve(address,uint256)')) == 0x095ea7b3
+     *     bytes4(keccak256('getApproved(uint256)')) == 0x081812fc
+     *     bytes4(keccak256('setApprovalForAll(address,bool)')) == 0xa22cb465
+     *     bytes4(keccak256('isApprovedForAll(address,address)')) == 0xe985e9c
+     *     bytes4(keccak256('transferFrom(address,address,uint256)')) == 0x23b872dd
+     *     bytes4(keccak256('safeTransferFrom(address,address,uint256)')) == 0x42842e0e
+     *     bytes4(keccak256('safeTransferFrom(address,address,uint256,bytes)')) == 0xb88d4fde
+     *
+     *     => 0x70a08231 ^ 0x6352211e ^ 0x095ea7b3 ^ 0x081812fc ^
+     *        0xa22cb465 ^ 0xe985e9c ^ 0x23b872dd ^ 0x42842e0e ^ 0xb88d4fde == 0x80ac58cd
+     */
     bytes4 private constant _INTERFACE_ID_KIP17 = 0x80ac58cd;
-    uint256 public _author_royalty_max = 1000;
-    bool public _allow_duplicate_datahash = false ;
-    mapping ( address => uint256 ) public _balances ;
-    uint256 public _token_id_global = 1 ;
-    constructor () public {        // register the supported interfaces to conform to KIP17 via KIP13
-        _registerInterface(_INTERFACE_ID_KIP17 ) ;
+
+    constructor () public {
+        // register the supported interfaces to conform to KIP17 via KIP13
+        _registerInterface(_INTERFACE_ID_KIP17);
     }
-		uint256 public _INVALID_TOKEN_ID_ = 0;
-    function _mint (
-			address to ,	//			uint256 id,
-			string memory _itemhash ,
-			uint256 amount,
-			uint256 __author_royalty ,
-			uint256 __decimals ,
-			bytes memory data
-    ) internal returns ( uint256 ) { //  virtual
-			require( to != address(0), "ERC1155: mint to the zero address") ;
-			if( __author_royalty  == 0){}
-			else { //				if ( __author_royalty <= IAdmin_nft ( _admincontract )._author_royalty_max() ){ }
-				if ( __author_royalty <= _author_royalty_max ){}
-				else { return _INVALID_TOKEN_ID_ ; }
-			} //			else { }//			if( IAdmin_nft( _admincontract)._allow_duplicate_datahash( ) ){			} 
-			if( _allow_duplicate_datahash ){}
-			else { // do not allow duplicates
-				if( _itemhash_tokenid [ _itemhash ] >0 ){	return _INVALID_TOKEN_ID_ ; }
-				else {} // avoid revert , so as not to stop calling function's execution
-			}
-			require ( amount >= 1 , "ERR() invalid amount") ;
-			require ( amount % 10**__decimals == 0 , "ERR() invalid supply spec" );
-			address operator = _msgSender();    // msg.sesnder ;// 
-			uint256 tokenid = _token_id_global ;// Counters.current( Counters ) ; // _token_id_global ;//			uint256 tokenid = 1 + _token_ id_global ;//			_beforeTokenTransfer(operator, address(0), to, _asSingletonArray(tokenid), _asSingletonArray(amount), data);			
-			_balances[ to ] += 1; // _balances[ to ] ; // += amount;  // _balances[ tokenid ][ to ] += amount;
-			_author_royalty[ tokenid ] = __author_royalty ;
-//			emit Transfer (operator, address(0), to, tokenid ); // , amount);//			_doSafeTransferAcceptanceCheck(operator, address(0), to, tokenid, amount, data);
-			_itemhash_tokenid [ _itemhash ] = tokenid ;
-			_tokenid_itemhash [ tokenid ] = _itemhash ;
-			_decimals [ tokenid ] = __decimals ;
-			  ++ _token_id_global ;
-			_author [ tokenid ] = to; // _to;
 
-            _tokenOwner[ tokenid ] = to;
-        _ownedTokensCount[to].increment();
-
-        emit Transfer(address(0), to, tokenid);
-
-			return tokenid ;
-    }
     /**
      * @dev Gets the balance of the specified address.
      * @param owner address to query the balance of
@@ -226,7 +180,7 @@ contract KIP17 is KIP13, IKIP17, Context {
      */
     function safeTransferFrom(address from, address to, uint256 tokenId, bytes memory _data) public {
         transferFrom(from, to, tokenId);
-        require(_checkOnKIP17Received(from, to, tokenId, _data), "KIP17: transfer to non KIP17Receiver implementer");
+       // require(_checkOnKIP17Received(from, to, tokenId, _data), "KIP17: transfer to non KIP17Receiver implementer");
     }
 
     /**
@@ -329,14 +283,11 @@ contract KIP17 is KIP13, IKIP17, Context {
      */
     function _checkOnKIP17Received(address from, address to, uint256 tokenId, bytes memory _data)
         internal returns (bool)
-    {
-        bool success; 
+    {        bool success; 
         bytes memory returndata;
-
         if (!to.isContract()) {
             return true;
         }
-
         // Logic for compatibility with ERC721.
         (success, returndata) = to.call(
             abi.encodeWithSelector(_ERC721_RECEIVED, msg.sender, from, tokenId, _data)
@@ -344,14 +295,12 @@ contract KIP17 is KIP13, IKIP17, Context {
         if (returndata.length != 0 && abi.decode(returndata, (bytes4)) == _ERC721_RECEIVED) {
             return true;
         }
-
         (success, returndata) = to.call(
             abi.encodeWithSelector(_KIP17_RECEIVED, msg.sender, from, tokenId, _data)
         );
         if (returndata.length != 0 && abi.decode(returndata, (bytes4)) == _KIP17_RECEIVED) {
             return true;
         }
-
         return false;
     }
 
@@ -365,21 +314,3 @@ contract KIP17 is KIP13, IKIP17, Context {
         }
     }
 }
-/**
- * @title KIP17 Non-Fungible Token Standard basic implementation
- * @dev see http://kips.klaytn.com/KIPs/kip-17-non_fungible_token
- */
-    /*
-     *     bytes4(keccak256('balanceOf(address)')) == 0x70a08231
-     *     bytes4(keccak256('ownerOf(uint256)')) == 0x6352211e
-     *     bytes4(keccak256('approve(address,uint256)')) == 0x095ea7b3
-     *     bytes4(keccak256('getApproved(uint256)')) == 0x081812fc
-     *     bytes4(keccak256('setApprovalForAll(address,bool)')) == 0xa22cb465
-     *     bytes4(keccak256('isApprovedForAll(address,address)')) == 0xe985e9c
-     *     bytes4(keccak256('transferFrom(address,address,uint256)')) == 0x23b872dd
-     *     bytes4(keccak256('safeTransferFrom(address,address,uint256)')) == 0x42842e0e
-     *     bytes4(keccak256('safeTransferFrom(address,address,uint256,bytes)')) == 0xb88d4fde
-     *
-     *     => 0x70a08231 ^ 0x6352211e ^ 0x095ea7b3 ^ 0x081812fc ^
-     *        0xa22cb465 ^ 0xe985e9c ^ 0x23b872dd ^ 0x42842e0e ^ 0xb88d4fde == 0x80ac58cd
-     */

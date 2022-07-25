@@ -1,8 +1,8 @@
-pragma solidity ^0.5.6;
+pragma solidity ^0.5.0;
 
 import "./IKIP17.sol";
-// import "./IERC721Receiver.sol";
-import "../token/IKIP17Receiver";
+import "./IERC721Receiver.sol";
+import "./IKIP17Receiver.sol";
 import "../../math/SafeMath.sol";
 import "../../utils/Address.sol";
 import "../../drafts/Counters.sol";
@@ -12,9 +12,7 @@ import "../../introspection/KIP13.sol";
  * @title KIP17 Non-Fungible Token Standard basic implementation
  * @dev see http://kips.klaytn.com/KIPs/kip-17-non_fungible_token
  */
-contract KIP17 is KIP13
-// , IKIP17 
-{
+contract KIP17 is KIP13, IKIP17 {
     using SafeMath for uint256;
     using Address for address;
     using Counters for Counters.Counter;
@@ -59,6 +57,7 @@ contract KIP17 is KIP13
         // register the supported interfaces to conform to KIP17 via KIP13
         _registerInterface(_INTERFACE_ID_KIP17);
     }
+
     /**
      * @dev Gets the balance of the specified address.
      * @param owner address to query the balance of
@@ -66,8 +65,10 @@ contract KIP17 is KIP13
      */
     function balanceOf(address owner) public view returns (uint256) {
         require(owner != address(0), "KIP17: balance query for the zero address");
+
         return _ownedTokensCount[owner].current();
     }
+
     /**
      * @dev Gets the owner of the specified token ID.
      * @param tokenId uint256 ID of the token to query the owner of
@@ -76,8 +77,10 @@ contract KIP17 is KIP13
     function ownerOf(uint256 tokenId) public view returns (address) {
         address owner = _tokenOwner[tokenId];
         require(owner != address(0), "KIP17: owner query for nonexistent token");
+
         return owner;
     }
+
     /**
      * @dev Approves another address to transfer the given token ID
      * The zero address indicates there is no approved address.
@@ -89,12 +92,13 @@ contract KIP17 is KIP13
     function approve(address to, uint256 tokenId) public {
         address owner = ownerOf(tokenId);
         require(to != owner, "KIP17: approval to current owner");
+
         require(msg.sender == owner || isApprovedForAll(owner, msg.sender),
             "KIP17: approve caller is not owner nor approved for all"
         );
 
         _tokenApprovals[tokenId] = to;
-//        emit Approval(owner, to, tokenId);
+        emit Approval(owner, to, tokenId);
     }
 
     /**
@@ -105,6 +109,7 @@ contract KIP17 is KIP13
      */
     function getApproved(uint256 tokenId) public view returns (address) {
         require(_exists(tokenId), "KIP17: approved query for nonexistent token");
+
         return _tokenApprovals[tokenId];
     }
 
@@ -118,7 +123,7 @@ contract KIP17 is KIP13
         require(to != msg.sender, "KIP17: approve to caller");
 
         _operatorApprovals[msg.sender][to] = approved;
-//        emit ApprovalForAll(msg.sender, to, approved);
+        emit ApprovalForAll(msg.sender, to, approved);
     }
 
     /**
@@ -207,19 +212,14 @@ contract KIP17 is KIP13
      * @param to The address that will own the minted token
      * @param tokenId uint256 ID of the token to be minted
      */
-    function _mint(address to, uint256 tokenId) internal returns (uint256){
+    function _mint(address to, uint256 tokenId) internal {
         require(to != address(0), "KIP17: mint to the zero address");
         require(!_exists(tokenId), "KIP17: token already minted");
 
         _tokenOwner[tokenId] = to;
         _ownedTokensCount[to].increment();
 
-//        emit Transfer(address(0), to, tokenId);
-        return tokenId;
-    }
-
-    function mint(address to, uint256 tokenId) public returns(uint256){
-        return _mint(to, tokenId);
+        emit Transfer(address(0), to, tokenId);
     }
 
     /**
@@ -237,7 +237,7 @@ contract KIP17 is KIP13
         _ownedTokensCount[owner].decrement();
         _tokenOwner[tokenId] = address(0);
 
-//        emit Transfer(owner, address(0), tokenId);
+        emit Transfer(owner, address(0), tokenId);
     }
 
     /**
@@ -267,7 +267,7 @@ contract KIP17 is KIP13
 
         _tokenOwner[tokenId] = to;
 
-//        emit Transfer(from, to, tokenId);
+        emit Transfer(from, to, tokenId);
     }
 
     /**
